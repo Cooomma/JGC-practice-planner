@@ -1,0 +1,21 @@
+{
+    "departureIata": "SFO",
+    "departureIcao": "KSFO",
+    "departureTerminal": "INTL",
+    "departureTime": "01: 55: 00",
+    "arrivalIata": "HND",
+    "arrivalIcao": "RJTT",
+    "arrivalTerminal": "INTL",
+    "arrivalTime": "04: 45: 00",
+    "airlineIata": "JL",
+    "airlineIcao": "JAL",
+    "flightNumber": "1",
+    "regNumber": [
+        "JA731J",
+        "JA732J",
+        "JA734J",
+        "JA735J",
+        "JA738J",
+        "JA740J"
+    ]
+}
