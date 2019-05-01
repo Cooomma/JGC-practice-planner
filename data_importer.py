@@ -101,13 +101,9 @@ class CommandLine:
             time.sleep(1)
 
     def parse_miles_data_into_db(self):
-        with open(os.path.abspath('./datas/Miles.txt'), 'r') as reader:
+        with open(os.path.abspath('./datas/jmb_miles.json'), 'r') as reader:
             for line in reader.readlines():
-                from_city, to_city, miles = line.split('|')
-                self.miles_db.raw_insert(
-                    dict(from_city_iata_code=from_city, to_city_iata_code=to_city, miles=int(miles)))
-                self.miles_db.raw_insert(
-                    dict(from_city_iata_code=to_city, to_city_iata_code=from_city, miles=int(miles)))
+                self.miles_db.raw_insert(json.loads(line))
 
     def export_db(self):
         with open('./datas/jmb_miles.json', 'w') as writer:
