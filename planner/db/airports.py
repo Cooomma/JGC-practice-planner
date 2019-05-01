@@ -45,7 +45,6 @@ class AirportsModel(BaseModel):
         stmt = select([self.table.c.id, self.table.c.name,
                        self.table.c.iata_code, self.table.c.timezone,
                        self.table.c.gmt, self.table.c.city_iata_code]).where(and_(self.table.c.country_code_iso2 == country_code))
-        result = []
         cursor = self.execute(stmt)
         row = cursor.fetchone()
         while row:
