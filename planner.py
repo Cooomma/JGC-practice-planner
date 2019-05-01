@@ -43,7 +43,9 @@ class CommandLine:
             # logger.info("Whole Path: %s" % walker.path)
 
         # Calculate Rewards for routes
-        pprint(plans)
+        for line in sorted(plans.values(), key=lambda x: x['fop'], reverse=True):
+            print(line)
+            print('\n')
 
 
 if __name__ == "__main__":
