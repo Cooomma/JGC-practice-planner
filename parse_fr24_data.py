@@ -25,9 +25,6 @@ class CommandLine:
         # self.miles_db = MilesModel(engine, metadata, role='writer')
         self.api_key = api_key
 
-        self.route_db.metadata.drop_all()
-        self.route_db.metadata.create_all()
-
     @staticmethod
     def rename_route(record: dict) -> dict:
         return dict(

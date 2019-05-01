@@ -9,6 +9,7 @@ from planner.db import create_engine_and_metadata
 from planner.db.routes import RouteModel
 from planner.db.airports import AirportsModel
 from planner.db.miles import MilesModel
+from planner.db.fr_routes import FRRouteModel
 
 
 fr24_header = {
@@ -30,9 +31,11 @@ class CommandLine:
 
     def __init__(self, db_username: str, db_passwd: str, api_key: str = None):
         engine, metadata = create_engine_and_metadata('10.0.1.4', db_username, db_passwd, 'flights')
+        self.metadata = metadata
         self.route_db = RouteModel(engine, metadata, role='writer')
         self.airport_db = AirportsModel(engine, metadata, role='writer')
         self.miles_db = MilesModel(engine, metadata, role='writer')
+        self.fr_route_db = FRRouteModel(engine, metadata, role='writer')
         self.api_key = api_key
 
     @staticmethod
@@ -68,7 +71,7 @@ class CommandLine:
             country_code_iso2=record['codeIso2Country'],
             city_iata_code=record['codeIataCity'])
 
-    def parse_airport_data_into_db(self, country_code: str):
+    def download_airport_data_into_db(self, country_code: str):
         for airport in requests.get(url=' https://aviation-edge.com/v2/public/airportDatabase', params=dict(key=self.api_key, codeIso2Country=country_code)).json():
             try:
                 self.airport_db.raw_insert(self.rename_airport(airport))
@@ -76,7 +79,7 @@ class CommandLine:
                 print(airport)
                 print(traceback.format_exc())
 
-    def parse_route_data_into_db(self, airline_iata: str):
+    def download_route_data_into_db(self, airline_iata: str):
         for route in requests.get(url=' http://aviation-edge.com/v2/public/routes', params=dict(key=self.api_key, airlineIata=airline_iata)).json():
             try:
                 self.route_db.raw_insert(self.rename_route(route))
@@ -84,7 +87,7 @@ class CommandLine:
                 print(route)
                 print(traceback.format_exc())
 
-    def parse_fr24_route_data_into_local(self):
+    def download_fr24_route_data_into_local(self):
         for airport in self.airport_db.get_airport_by_country_code('JP'):
             route = requests.get(
                 url='https://www.flightradar24.com/data/airlines/nu-jta/routes',
@@ -100,10 +103,27 @@ class CommandLine:
                 print(traceback.format_exc())
             time.sleep(1)
 
-    def parse_miles_data_into_db(self):
+    def reload_fr24_jl_domestic_data_into_db(self):
+        with open(os.path.abspath('./datas/fr24_jl_domestic_routes.json'), 'r') as reader:
+            for line in reader.readlines():
+                self.fr_route_db.raw_insert(json.loads(line))
+
+    def reload_miles_data_into_db(self):
         with open(os.path.abspath('./datas/jmb_miles.json'), 'r') as reader:
             for line in reader.readlines():
                 self.miles_db.raw_insert(json.loads(line))
+
+    def reload_airport_data_into_db(self):
+        with open(os.path.abspath('./datas/jp_airports.json'), 'r') as reader:
+            for line in reader.readlines():
+                self.airport_db.raw_insert(json.loads(line))
+
+    def reload_all(self):
+        self.metadata.drop_all()
+        self.metadata.create_all()
+        self.reload_airport_data_into_db()
+        self.reload_fr24_jl_domestic_data_into_db()
+        self.reload_miles_data_into_db()
 
     def export_db(self):
         with open('./datas/jmb_miles.json', 'w') as writer:

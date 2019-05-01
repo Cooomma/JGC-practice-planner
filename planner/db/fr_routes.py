@@ -10,7 +10,7 @@ class FRRouteModel(BaseModel):
 
     def __init__(self, engine, metadata, role='reader'):
         table = Table(
-            'routes',
+            'fr_routes',
             metadata,
             Column('flight_number', String(64), primary_key=True),
             Column('departure_iata', String(255)),
@@ -29,11 +29,11 @@ class FRRouteModel(BaseModel):
             yield dict(zip([col.key for col in self.table.columns], row))
             row = cursor.fetchone()
 
-    def get_domestic_routes(self, departure_iata: str) -> List[dict]:
+    def get_routes(self, departure_iata: str) -> List[dict]:
         stmt = select([self.table.c.flight_number,
                        self.table.c.departure_iata, self.table.c.arrival_iata,
                        self.table.c.departure_time, self.table.c.arrival_time])\
-            .where(and_(self.table.c.departure_iata == departure_iata, self.table.c.domestic == 1)) \
+            .where(and_(self.table.c.departure_iata == departure_iata)) \
             .order_by(asc(self.table.c.departure_time))
         cursor = self.execute(stmt)
         row = cursor.fetchone()

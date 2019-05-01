@@ -40,8 +40,8 @@
 {"from_city_iata_code": "IZO", "id": 40, "miles": 405, "to_city_iata_code": "TYO", "updated_at": 1556686706}
 {"from_city_iata_code": "TYO", "id": 41, "miles": 414, "to_city_iata_code": "HIJ", "updated_at": 1556686706}
 {"from_city_iata_code": "HIJ", "id": 42, "miles": 414, "to_city_iata_code": "TYO", "updated_at": 1556686706}
-{"from_city_iata_code": "TYO", "id": 43, "miles": 510, "to_city_iata_code": "UBE", "updated_at": 1556686706}
-{"from_city_iata_code": "UBE", "id": 44, "miles": 510, "to_city_iata_code": "TYO", "updated_at": 1556686706}
+{"from_city_iata_code": "TYO", "id": 43, "miles": 510, "to_city_iata_code": "UBJ", "updated_at": 1556686706}
+{"from_city_iata_code": "UBJ", "id": 44, "miles": 510, "to_city_iata_code": "TYO", "updated_at": 1556686706}
 {"from_city_iata_code": "TYO", "id": 45, "miles": 329, "to_city_iata_code": "TKS", "updated_at": 1556686706}
 {"from_city_iata_code": "TKS", "id": 46, "miles": 329, "to_city_iata_code": "TYO", "updated_at": 1556686706}
 {"from_city_iata_code": "TYO", "id": 47, "miles": 354, "to_city_iata_code": "TAK", "updated_at": 1556686706}
