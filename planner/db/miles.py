@@ -30,5 +30,6 @@ class MilesModel(BaseModel):
     def get_miles(self, from_city_iata: str, to_city_iata: str) -> int:
         stmt = select([self.table.c.miles]).where(
             and_(self.table.c.from_city_iata_code == from_city_iata,
-                 self.table.c.to_city_iata_code == to_city_iata_code))
-        return self.execute(stmt).fetchone().miles
+                 self.table.c.to_city_iata_code == to_city_iata))
+        row = self.execute(stmt).fetchone()
+        return row.miles if row else None

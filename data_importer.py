@@ -1,3 +1,4 @@
+import time
 import json
 import os
 import traceback
@@ -10,9 +11,24 @@ from planner.db.airports import AirportsModel
 from planner.db.miles import MilesModel
 
 
+fr24_header = {
+    'accept-encoding': "gzip, deflate, br",
+    'x-fetch': "true",
+    'accept-language': "en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7",
+    'user-agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.103 Safari/537.36",
+    'content-type': "application/json",
+    'accept': "*/*",
+    'referer': "https://www.flightradar24.com/data/airlines/jl-jal/routes",
+    'authority': "www.flightradar24.com",
+    'cookie': "__cfduid=dd028cbef677259b9597e9691ba2837ad1552826955; __utmz=177865842.1552826958.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); cookie_law_consent=1; _frr=1; _frc=LeoxwAibqWG6kKb25-sx3F_myNxCcHEcv_v7pBPnFdwwtXiRrY8jPeUr-Aep6673EbCuDQ3I72_g0-s3t-LMG5xCbyi4IHBQP1hpl5ArmMU9XDGT-tJa8kYTvJGjFjEjY2G7CaKaHd6xi_mcT1Mt1OBPwFK4lyHKaeAh8Frm7TUK6pMJHP7etiCV_0udxJ9nH_61IskJIy-JwJyI4VRBGMz6Kydnn2tmCHfnjrUir9WAPPcNYwveF6o_I-No6RRm; FR24ID=5joaasp0e3f5hgs4m1ojm5d9udhhf7mkcqmhdel54m9e39jqqt9h; _frpk=NDevvDnVNEtR6nEwPWvaSA; hasConsentedToTerms=yes; __utmc=177865842; subscription=12; _frPl=NDevvDnVNEtR6nEwPWvaSNlcngfKdDRRHG9GXcAqvQE; __utma=177865842.2084412574.1552826958.1556628588.1556716510.4; __utmt=1; __utmb=177865842.7.10.1556716510; mac_overlay_count=450",
+    'cache-control': "no-cache",
+    'Postman-Token': "416ace9c-5ee3-4703-be5a-fd614537aa90"
+}
+
+
 class CommandLine:
 
-    def __init__(self, db_username: str, db_passwd: str, api_key: str):
+    def __init__(self, db_username: str, db_passwd: str, api_key: str = None):
         engine, metadata = create_engine_and_metadata('10.0.1.4', db_username, db_passwd, 'flights')
         self.route_db = RouteModel(engine, metadata, role='writer')
         self.airport_db = AirportsModel(engine, metadata, role='writer')
@@ -67,6 +83,22 @@ class CommandLine:
             except:
                 print(route)
                 print(traceback.format_exc())
+
+    def parse_fr24_route_data_into_local(self):
+        for airport in self.airport_db.get_airport_by_country_code('JP'):
+            route = requests.get(
+                url='https://www.flightradar24.com/data/airlines/nu-jta/routes',
+                headers=fr24_header,
+                params={"get-airport-arr-dep": airport['iata_code']}).text
+            try:
+                with open('./datas/fr24/jta_{}.json'.format(airport['iata_code'].lower()), 'w') as writer:
+                    # writer.write(json.dumps(route, ensure_ascii=False, sort_keys=True))
+                    writer.write(route)
+                    writer.write('\n')
+            except:
+                print(route)
+                print(traceback.format_exc())
+            time.sleep(1)
 
     def parse_miles_data_into_db(self):
         with open(os.path.abspath('./datas/Miles.txt'), 'r') as reader:

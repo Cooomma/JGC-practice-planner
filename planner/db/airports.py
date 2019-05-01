@@ -25,7 +25,6 @@ class AirportsModel(BaseModel):
             Column('country', String(255)),
             Column('country_code_iso2', String(255)),
             Column('city_iata_code', String(255)),
-            Column('city_iata_code', String(255)),
             Column('updated_at', INT),
             extend_existing=True)
         super().__init__(engine, metadata, table, role)
@@ -36,6 +35,11 @@ class AirportsModel(BaseModel):
         while row:
             yield dict(zip([col.key for col in self.table.columns], row))
             row = cursor.fetchone()
+
+    def get_city_iata_code(self, airport_iata: str) -> str:
+        stmt = select([self.table.c.city_iata_code]).where(
+            and_(self.table.c.iata_code == airport_iata))
+        return self.execute(stmt).fetchone().city_iata_code
 
     def get_airport_by_country_code(self, country_code: str) -> List[dict]:
         stmt = select([self.table.c.id, self.table.c.name,
