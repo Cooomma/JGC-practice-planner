@@ -1,20 +1,17 @@
 from collections import defaultdict
-from datetime import datetime
 import logging
-from typing import List
 
 from planner import date_util
 from planner.db import create_engine_and_metadata
 from planner.db.airports import AirportsModel
-from planner.db.miles import MilesModel
 from planner.db.fr_routes import FRRouteModel
-from planner.graph import RouteGraph, FlightPlan
-
+from planner.db.miles import MilesModel
+from planner.graph import RouteGraph
 
 logger = logging.getLogger()
 
 
-def group_by_key(routes: list, grouping_key: str, sort_by: str) -> dict:
+def group_by_key(routes: list, grouping_key: str) -> dict:
     tmp = defaultdict(list)
     for route in routes:
         tmp[route[grouping_key]].append(route)
@@ -24,7 +21,7 @@ def group_by_key(routes: list, grouping_key: str, sort_by: str) -> dict:
     return results
 
 
-class Utils:
+class DataLoader:
 
     multiplier = 2
     bonus = 400
@@ -51,50 +48,17 @@ class Utils:
         graph = RouteGraph()
         for airport in self.airport_db.get_airport_by_country_code('JP'):
             for route in self.route_db.get_routes(airport['iata_code']):
-                if route:
-                    try:
-                        flight = dict(
-                            flight_number=route['flight_number'],
-                            departure=route['departure'],
-                            departure_time=date_util.parse_time(route['departure_time']),
-                            arrival=route['arrival'],
-                            arrival_time=date_util.parse_time(route['arrival_time']),
-                            reward=self.get_reward(route['departure'], route['arrival']))
-                    except:
-                        logger.error('Can\'t build route: %s' % route)
-                    graph.add_edge(route['departure'], flight)
+                try:
+                    flight = dict(
+                        flight_number=route['flight_number'],
+                        departure=route['departure'],
+                        departure_time=date_util.parse_time(route['departure_time']),
+                        arrival=route['arrival'],
+                        arrival_time=date_util.parse_time(route['arrival_time']),
+                        reward=self.get_reward(route['departure'], route['arrival']))
+                except Exception:
+                    logger.error('Can\'t build route: %s' % route)
+                graph.add_edge(route['departure'], flight)
         nodes = graph.export()
         logger.info('Graph Nodes: %d, Total Edge: %d' % (len(nodes), sum([len(x) for x in nodes.values()])))
         return nodes
-
-    def build_flight_plan(self):
-        airports = [x for x in self.airport_db.get_airport_by_country_code('JP')]
-        flight_plan = FlightPlan(len(airports))
-        for airport in airports:
-            for route in self.route_db.get_routes(airport['iata_code']):
-                if route:
-                    try:
-                        flight = dict(
-                            flight_number=route['flight_number'],
-                            departure=route['departure'],
-                            departure_time=date_util.parse_time(route['departure_time']),
-                            arrival=route['arrival'],
-                            arrival_time=date_util.parse_time(route['arrival_time']),
-                            reward=self.get_reward(route['departure'], route['arrival']))
-                    except:
-                        logger.error('Can\'t build route: %s' % route)
-                    flight_plan.add_flight(route['departure'], flight)
-
-        flight_plan.topologicalSort()
-
-    @staticmethod
-    def get_all_latest_unique_stop_flights_after_arrival(flights: List[dict], arrival_time: datetime) -> dict:
-        existed_stops = set()
-        results = dict()
-
-        for flight in sorted(flights, key=lambda x: x['departure_time']):
-            arrival = flight['arrival']
-            if arrival not in existed_stops and arrival_time < flight['departure_time']:
-                results[arrival] = flight
-            existed_stops.add(arrival)
-        return results

@@ -13,7 +13,7 @@ class Walker:
     def __init__(self, route: RouteGraph, start_airport: str, start_time: datetime, min_transit_time: int):
         self._route = route
         self._end_of_walk = False
-        self._minimum_transit_time = timedelta(seconds=min_transit_time)
+        self._minimum_transit_time = timedelta(minutes=min_transit_time)
 
         self._start_airport = start_airport
         self._start_time = start_time
@@ -55,7 +55,7 @@ class Walker:
     def _historial_paths(previous_airports: list):
         return '_'.join(previous_airports)
 
-    def walk(self):
+    def walk(self, top_k: int):
         simulating_paths = dict()
 
         for next_flight in self._next_flights(self._start_airport, self._start_time).values():
@@ -65,14 +65,12 @@ class Walker:
 
         is_continue = True
         counter = 0
-        current_simulating_path = simulating_paths.copy()
-        # for airport_path, plan in simulating_paths.items():
-        #    logger.debug('Airport: %s, Plans: %s' % (airport_path, plan.to_dict()))
 
         while is_continue:
             counter += 1
             logger.info('Loop: %s. Current Number of  Simulating Paths %s' % (counter, len(simulating_paths.keys())))
 
+            current_simulating_path = simulating_paths.copy()
             for path_key, flight_plan in current_simulating_path.items():
 
                 last_flight = flight_plan.flights[-1]
@@ -88,7 +86,6 @@ class Walker:
                                 new_flight_plan.airports)] = new_flight_plan.add_route(next_flight)
                     is_continue = not all([plan.is_end for plan in current_simulating_path.values()])
                     logger.debug('Airport: %s, Plans: %s' % (path_key, flight_plan.to_dict()))
-                    current_simulating_path = simulating_paths.copy()
                 else:
                     is_continue = False
 
@@ -96,13 +93,7 @@ class Walker:
                 'Loop: %s End. Current Simulating Paths %s, Continues?: %s' %
                 (counter, len(current_simulating_path.values()), is_continue))
 
-        results = []
-        for plan in simulating_paths.values():
-            # results.append(dict(path=plan.airports, plan=plan, fop=plan.fop))
-            results.append(plan)
-
-        results.sort(key=lambda x: x.fop, reverse=True)
-        best = results[:10]
-        for plan in best:
-            print(plan.to_human())
-            print('\n')
+        final_plans = sorted(simulating_paths.values(), key=lambda x: x.fop, reverse=True)
+        if len(final_plans) >= top_k:
+            return final_plans[:top_k]
+        return final_plans

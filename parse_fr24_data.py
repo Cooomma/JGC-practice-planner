@@ -1,19 +1,15 @@
-import time
+
 from datetime import datetime
 import json
 import os
-import traceback
 
-import pytz
-from pytz import timezone
 from fire import Fire
-from pprint import pprint
-import requests
 from planner.db import create_engine_and_metadata
-from planner.db.routes import RouteModel
 from planner.db.airports import AirportsModel
 from planner.db.fr_routes import FRRouteModel
 from planner.db.miles import MilesModel
+from planner.db.routes import RouteModel
+from pytz import timezone
 
 
 class CommandLine:
@@ -21,8 +17,6 @@ class CommandLine:
     def __init__(self, db_username: str, db_passwd: str, api_key: str = None):
         engine, metadata = create_engine_and_metadata('10.0.1.4', db_username, db_passwd, 'flights')
         self.route_db = FRRouteModel(engine, metadata, role='writer')
-        # self.airport_db = AirportsModel(engine, metadata, role='writer')
-        # self.miles_db = MilesModel(engine, metadata, role='writer')
         self.api_key = api_key
 
     @staticmethod
