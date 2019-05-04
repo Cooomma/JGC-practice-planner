@@ -14,11 +14,14 @@ from planner.graph import RouteGraph, FlightPlan
 logger = logging.getLogger()
 
 
-def group_by_key(routes: list, grouping_key: str) -> dict:
-    result = defaultdict(list)
+def group_by_key(routes: list, grouping_key: str, sort_by: str) -> dict:
+    tmp = defaultdict(list)
     for route in routes:
-        result[route[grouping_key]].append(route)
-    return result
+        tmp[route[grouping_key]].append(route)
+    results = dict()
+    for key, values in tmp.items():
+        results[key] = sorted(values, key=lambda x: x['departure_time'])
+    return results
 
 
 class Utils:

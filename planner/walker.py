@@ -1,10 +1,6 @@
 import copy
-from collections import defaultdict, Counter
 from datetime import datetime, timedelta
-from itertools import groupby
 import logging
-from pprint import pprint
-from typing import List
 
 from planner import utils
 from planner.graph import FlightPlan, RouteGraph
@@ -44,16 +40,15 @@ class Walker:
         return False
 
     def _next_flights(self, current_airport: str, current_time: datetime) -> dict:
-        results = defaultdict(list)
         routes = self._route.get(current_airport)
+        results = dict()
         logger.debug('%s of flights in %s' % (len(routes), current_airport))
-        if routes:
-            for destination, flights in utils.group_by_key(routes, grouping_key='arrival').items():
-                for possible_flight in sorted(flights, key=lambda x: x['departure_time']):
-                    if self._is_enough_transit_time(current_time, possible_flight) and self._is_within_current_day(current_time, possible_flight):
-                        logger.debug('%s, possible flights: %s' % (destination, possible_flight))
-                        results[destination].append(possible_flight)
-                        break
+        for destination, flights in utils.group_by_key(routes, grouping_key='arrival', sort_by='departure_time').items():
+            for optimal_flight in flights:
+                if self._is_enough_transit_time(current_time, optimal_flight) and self._is_within_current_day(current_time, optimal_flight):
+                    logger.debug('%s, possible flights: %s' % (destination, optimal_flight))
+                    results[destination] = optimal_flight
+                    break
         return dict(results)
 
     @staticmethod
@@ -63,49 +58,51 @@ class Walker:
     def walk(self):
         simulating_paths = dict()
 
-        for next_flights in self._next_flights(self._start_airport, self._start_time).values():
+        for next_flight in self._next_flights(self._start_airport, self._start_time).values():
             flight_plan = FlightPlan(self._start_airport)
-            flight_plan.add_route(next_flights[0])
+            flight_plan.add_route(next_flight)
             simulating_paths[self._historial_paths(flight_plan.airports)] = flight_plan
 
         is_continue = True
         counter = 0
-        for airport_path, plan in simulating_paths.items():
-            logger.debug('Airport: %s, Plans: %s' % (airport_path, plan.to_dict()))
+        current_simulating_path = simulating_paths.copy()
+        # for airport_path, plan in simulating_paths.items():
+        #    logger.debug('Airport: %s, Plans: %s' % (airport_path, plan.to_dict()))
 
         while is_continue:
             counter += 1
             logger.info('Loop: %s. Current Number of  Simulating Paths %s' % (counter, len(simulating_paths.keys())))
 
-            current_simulating_path = copy.deepcopy(simulating_paths)
-
             for path_key, flight_plan in current_simulating_path.items():
-                if flight_plan.is_end:
-                    break
 
                 last_flight = flight_plan.flights[-1]
                 current_airport = last_flight['arrival']
                 current_time = last_flight['arrival_time']
 
-                del simulating_paths[path_key]
-                for next_flights in self._next_flights(current_airport, current_time).values():
-                    if next_flights:
-                        for next_flight in next_flights:
-                            if self._is_connected(last_flight, next_flight):
-                                new_flight_plan = copy.deepcopy(flight_plan)
-                                simulating_paths[self._historial_paths(
-                                    new_flight_plan.airports)] = new_flight_plan.add_route(next_flight)
-                    else:
-                        flight_plan.is_end = True
-                logger.debug('Airport: %s, Plans: %s' % (path_key, flight_plan.to_dict()))
+                next_flights = self._next_flights(current_airport, current_time).values()
+                if next_flights:
+                    for next_flight in next_flights:
+                        if self._is_connected(last_flight, next_flight):
+                            new_flight_plan = copy.deepcopy(flight_plan)
+                            simulating_paths[self._historial_paths(
+                                new_flight_plan.airports)] = new_flight_plan.add_route(next_flight)
+                    is_continue = not all([plan.is_end for plan in current_simulating_path.values()])
+                    logger.debug('Airport: %s, Plans: %s' % (path_key, flight_plan.to_dict()))
+                    current_simulating_path = simulating_paths.copy()
+                else:
+                    is_continue = False
 
-            is_continue = not all([plan.is_end for plan in current_simulating_path.values()])
             logger.info(
                 'Loop: %s End. Current Simulating Paths %s, Continues?: %s' %
-                (counter,
-                 dict(Counter([plan.is_end for plan in current_simulating_path.values()])),
-                 is_continue))
+                (counter, len(current_simulating_path.values()), is_continue))
 
-            if not is_continue:
-                for path, plan in simulating_paths.items():
-                    print(path)
+        results = []
+        for plan in simulating_paths.values():
+            # results.append(dict(path=plan.airports, plan=plan, fop=plan.fop))
+            results.append(plan)
+
+        results.sort(key=lambda x: x.fop, reverse=True)
+        best = results[:10]
+        for plan in best:
+            print(plan.to_human())
+            print('\n')

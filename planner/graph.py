@@ -1,3 +1,6 @@
+import json
+from datetime import datetime
+from planner import date_util
 from collections import defaultdict
 
 
@@ -64,4 +67,15 @@ class FlightPlan:
         return self
 
     def to_dict(self):
-        return dict(airports=self._airports, flights=self._flights)
+        return dict(airports=self._airports, flights=self.flights)
+
+    def to_human(self):
+        return json.dumps(dict(airports=self._airports, fop=self.fop, flights=list(map(self.prettify_dict, self.flights))), sort_keys=True, ensure_ascii=False)
+
+    @staticmethod
+    def prettify_dict(flight: dict) -> dict:
+        if isinstance(flight['arrival_time'], datetime):
+            flight['arrival_time'] = date_util.time_to_str(flight['arrival_time'])
+        if isinstance(flight['departure_time'], datetime):
+            flight['departure_time'] = date_util.time_to_str(flight['departure_time'])
+        return flight
