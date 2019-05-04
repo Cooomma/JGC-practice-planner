@@ -8,7 +8,7 @@ from planner.db import create_engine_and_metadata
 from planner.db.airports import AirportsModel
 from planner.db.miles import MilesModel
 from planner.db.fr_routes import FRRouteModel
-from planner.graph import RouteGraph
+from planner.graph import RouteGraph, FlightPlan
 
 
 logger = logging.getLogger()
@@ -26,8 +26,8 @@ class Utils:
     multiplier = 2
     bonus = 400
 
-    def __init__(self, db_username: str, db_passwd: str):
-        engine, metadata = create_engine_and_metadata('10.0.1.4', db_username, db_passwd, 'flights')
+    def __init__(self, db_username: str, db_passwd: str, db_host: str):
+        engine, metadata = create_engine_and_metadata(db_host, db_username, db_passwd, 'flights')
         self.route_db = FRRouteModel(engine, metadata, role='writer')
         self.airport_db = AirportsModel(engine, metadata, role='writer')
         self.miles_db = MilesModel(engine, metadata, role='writer')
@@ -63,6 +63,26 @@ class Utils:
         nodes = graph.export()
         logger.info('Graph Nodes: %d, Total Edge: %d' % (len(nodes), sum([len(x) for x in nodes.values()])))
         return nodes
+
+    def build_flight_plan(self):
+        airports = [x for x in self.airport_db.get_airport_by_country_code('JP')]
+        flight_plan = FlightPlan(len(airports))
+        for airport in airports:
+            for route in self.route_db.get_routes(airport['iata_code']):
+                if route:
+                    try:
+                        flight = dict(
+                            flight_number=route['flight_number'],
+                            departure=route['departure'],
+                            departure_time=date_util.parse_time(route['departure_time']),
+                            arrival=route['arrival'],
+                            arrival_time=date_util.parse_time(route['arrival_time']),
+                            reward=self.get_reward(route['departure'], route['arrival']))
+                    except:
+                        logger.error('Can\'t build route: %s' % route)
+                    flight_plan.add_flight(route['departure'], flight)
+
+        flight_plan.topologicalSort()
 
     @staticmethod
     def get_all_latest_unique_stop_flights_after_arrival(flights: List[dict], arrival_time: datetime) -> dict:

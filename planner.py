@@ -10,42 +10,29 @@ from planner.walker import Walker
 
 logging.basicConfig(
     format='%(asctime)s- %(levelname)s - %(module)s.%(funcName)s - %(lineno)s - %(message)s',
-    level=logging.DEBUG)
+    level=logging.INFO)
 logger = logging.getLogger()
 
 
 class CommandLine:
 
-    def __init__(self, db_username: str, db_passwd: str):
-        self.utils = Utils(db_username, db_passwd)
-        self.graph = self.utils.build_graph()
+    def __init__(self, db_username: str, db_passwd: str, db_host: str = '10.0.1.6'):
+        self.utils = Utils(db_username, db_passwd, db_host)
 
     def show_graph(self):
+        self.graph = self.utils.build_graph()
         for airport, flights in self.graph.items():
             print(airport, flights)
             print('\n')
 
-    def plan(self, start_from: str = 'HND', start_time: str = '05:00:00', duration: int = 1):
-        route_graph = self.graph
-        first_start_time = date_util.parse_time(start_time)
-        init_step = dict()
-        plans = dict()
+    def show_flight_plan(self):
+        self.utils.build_flight_plan()
 
-        # First Move
-        for next_stop, flight in self.utils.get_all_latest_unique_stop_flights_after_arrival(route_graph.get(start_from), first_start_time).items():
-            init_step[next_stop] = flight
+    def plan(self, start_from: str = 'HND', start_time: str = '05:00:00', min_transit_time: int = 1800, duration: int = 1):
 
-        for airport, flight in init_step.items():
-            # logger.info('FROM {} TO {} via {}'.format(start_from, airport, flight['flight_number']))
-            walker = Walker(route_graph, flight)
-            walker.walk()
-            plans[airport] = dict(plans=walker.plans, paths=walker.path, fop=walker.cumulate_points)
-            # logger.info("Whole Path: %s" % walker.path)
-
-        # Calculate Rewards for routes
-        for line in sorted(plans.values(), key=lambda x: x['fop'], reverse=True):
-            print(line)
-            print('\n')
+        walker = Walker(route=self.utils.build_graph(), start_airport=start_from,
+                        start_time=date_util.parse_time(start_time), min_transit_time=min_transit_time)
+        walker.walk()
 
 
 if __name__ == "__main__":
