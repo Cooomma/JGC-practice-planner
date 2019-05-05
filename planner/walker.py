@@ -43,7 +43,7 @@ class Walker:
         routes = self._route.get(current_airport)
         results = dict()
         logger.debug('%s of flights in %s' % (len(routes), current_airport))
-        for destination, flights in utils.group_by_key(routes, grouping_key='arrival', sort_by='departure_time').items():
+        for destination, flights in utils.group_by_key(routes, grouping_key='arrival').items():
             for optimal_flight in flights:
                 if self._is_enough_transit_time(current_time, optimal_flight) and self._is_within_current_day(current_time, optimal_flight):
                     logger.debug('%s, possible flights: %s' % (destination, optimal_flight))
@@ -93,7 +93,5 @@ class Walker:
                 'Loop: %s End. Current Simulating Paths %s, Continues?: %s' %
                 (counter, len(current_simulating_path.values()), is_continue))
 
-        final_plans = sorted(simulating_paths.values(), key=lambda x: x.fop, reverse=True)
-        if len(final_plans) >= top_k:
-            return final_plans[:top_k]
-        return final_plans
+        final_plans = sorted([plan for plan in simulating_paths.values()], key=lambda x: x.fop, reverse=True)
+        return final_plans[:top_k] if len(final_plans) >= top_k else final_plans

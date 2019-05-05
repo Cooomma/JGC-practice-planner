@@ -70,7 +70,7 @@ class FlightPlan:
         return dict(airports=self._airports, flights=self.flights)
 
     def to_human(self):
-        return json.dumps(dict(airports=self._airports, fop=self.fop, flights=list(map(self.prettify_dict, self.flights))), sort_keys=True, ensure_ascii=False)
+        return dict(airports=self._airports, fop=self.fop, flights=list(map(self.prettify_dict, self.flights)))
 
     @staticmethod
     def prettify_dict(flight: dict) -> dict:

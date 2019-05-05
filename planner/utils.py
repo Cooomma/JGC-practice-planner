@@ -1,3 +1,4 @@
+import json
 from collections import defaultdict
 import logging
 
@@ -11,6 +12,26 @@ from planner.graph import RouteGraph
 logger = logging.getLogger()
 
 
+def export(simulated_results: dict):
+    output = dict()
+    for day_number, values in simulated_results.items():
+        output[day_number] = dict()
+        for airport, plans in values.items():
+            try:
+                output[day_number][airport] = [plan.to_human() for plan in plans]
+            except Exception:
+                import traceback
+                print(traceback.format_exc())
+                print(day_number)
+                print(values)
+                print(plans)
+
+    with open('results.json', 'w') as writer:
+        writer.write(json.dumps(output, sort_keys=True, ensure_ascii=False))
+
+    return output
+
+
 def group_by_key(routes: list, grouping_key: str) -> dict:
     tmp = defaultdict(list)
     for route in routes:
@@ -19,6 +40,21 @@ def group_by_key(routes: list, grouping_key: str) -> dict:
     for key, values in tmp.items():
         results[key] = sorted(values, key=lambda x: x['departure_time'])
     return results
+
+
+def most_fop_route(similuated_route: dict) -> dict:
+    from pprint import pprint
+    results = dict()
+    for day_number, values in similuated_route.items():
+        for airport, plans in values.items():
+            if int(day_number) > 1:
+                if airport == results[str(int(day_number) - 1)]['airports'][-1]:
+                    results[day_number] = max(plans, key=lambda x: x.fop).to_human()
+            else:
+                results[day_number] = max(plans, key=lambda x: x.fop).to_human()
+
+    results['total_fop'] = sum([result['fop'] for result in results.values()])
+    pprint(results)
 
 
 class DataLoader:
